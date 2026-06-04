@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "src": "website/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/website/index.html"
+    }
+  ],
+  "cleanUrls": true
+}

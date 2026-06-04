@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atheneum Council — AI That Debates To Find The Truth</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #161616;
+  --border: #1e1e1e;
+  --border2: #2a2a2a;
+  --text: #e8e8e8;
+  --text2: #999;
+  --text3: #555;
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --law: #4a7fa5;
+  --health: #4a9e6e;
+  --edu: #9e6b4a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10,10,10,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 13px;
+  color: var(--text3);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.nav-cta {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.nav-cta:hover { background: var(--gold2); }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 40px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--gold);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(52px, 8vw, 96px);
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.hero-title em { font-style: italic; color: var(--gold); }
+
+.hero-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 300;
+  color: var(--text2);
+  font-style: italic;
+  margin-bottom: 28px;
+}
+
+.hero-desc {
+  font-size: 16px;
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.8;
+  margin-bottom: 48px;
+  font-weight: 300;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 72px;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 14px 32px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-secondary:hover { border-color: #444; color: var(--text); }
+
+.stats-strip {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--text);
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-top: 4px;
+}
+
+section {
+  padding: 100px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+.section-title em { font-style: italic; color: var(--gold); }
+
+.section-desc {
+  font-size: 15px;
+  color: var(--text2);
+  max-width: 600px;
+  line-height: 1.8;
+  font-weight: 300;
+  margin-bottom: 56px;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  margin: 0 60px;
+}
+
+.councils-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.council-tile {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 36px 28px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.council-tile:hover { transform: translateY(-4px); border-color: var(--border2); }
+
+.ct-glow {
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.ct-law .ct-glow { background: radial-gradient(circle, rgba(74,127,165,0.12), transparent 70%); }
+.ct-health .ct-glow { background: radial-gradient(circle, rgba(74,158,110,0.12), transparent 70%); }
+.ct-edu .ct-glow { background: radial-gradient(circle, rgba(158,107,74,0.12), transparent 70%); }
+
+.ct-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+.ct-law .ct-icon { background: rgba(74,127,165,0.1); border: 1px solid rgba(74,127,165,0.2); }
+.ct-health .ct-icon { background: rgba(74,158,110,0.1); border: 1px solid rgba(74,158,110,0.2); }
+.ct-edu .ct-icon { background: rgba(158,107,74,0.1); border: 1px solid rgba(158,107,74,0.2); }
+
+.ct-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: 20px; padding: 3px 10px; margin-bottom: 16px;
+}
+.status-live { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); color: #4ade80; }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; }
+.status-live .status-dot { background: #4ade80; animation: pulse 2s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.ct-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.ct-tagline {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  font-weight: 300;
+}
+
+.ct-features {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 28px;
+}
+
+.ct-feature {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--text2);
+}
+
+.ct-law .ct-feature::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--law); flex-shrink:0; }
+.ct-health .ct-feature::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--health); flex-shrink:0; }
+.ct-edu .ct-feature::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--edu); flex-shrink:0; }
+
+.ct-btn {
+  width: 100%; padding: 12px;
+  border-radius: 8px; font-size: 13px; font-weight: 500;
+  font-family: 'DM Sans', sans-serif; cursor: pointer;
+  border: 1px solid; transition: all 0.2s;
+  text-align: center; text-decoration: none; display: block;
+}
+.ct-law .ct-btn { border-color: rgba(74,127,165,0.3); color: var(--law); background: rgba(74,127,165,0.06); }
+.ct-health .ct-btn { border-color: rgba(74,158,110,0.3); color: var(--health); background: rgba(74,158,110,0.06); }
+.ct-edu .ct-btn { border-color: rgba(158,107,74,0.3); color: var(--edu); background: rgba(158,107,74,0.06); }
+.ct-law .ct-btn:hover { background: rgba(74,127,165,0.14); }
+.ct-health .ct-btn:hover { background: rgba(74,158,110,0.14); }
+.ct-edu .ct-btn:hover { background: rgba(158,107,74,0.14); }
+
+.general-cta {
+  background: linear-gradient(135deg, #111 0%, #161606 100%);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 20px;
+  padding: 48px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-top: 56px;
+}
+.general-cta::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.general-cta-glow {
+  position: absolute;
+  top: -80px; left: 50%; transform: translateX(-50%);
+  width: 300px; height: 200px;
+  background: radial-gradient(ellipse, rgba(201,168,76,0.08), transparent 70%);
+  pointer-events: none;
+}
+.general-cta h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px; font-weight: 300; color: var(--text); margin-bottom: 12px;
+}
+.general-cta p {
+  font-size: 15px; color: var(--text2); margin-bottom: 32px; font-weight: 300;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.about-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-style: italic;
+  color: var(--text2); line-height: 1.7;
+  padding: 32px;
+  border-left: 2px solid var(--gold);
+  background: var(--bg2);
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 16px;
+}
+.about-quote cite {
+  display: block; font-style: normal;
+  font-size: 12px; color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  margin-top: 16px; letter-spacing: 0.1em;
+}
+.about-text h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px; font-weight: 300; color: var(--text);
+  margin-bottom: 20px; line-height: 1.2;
+}
+.about-text p {
+  font-size: 15px; color: var(--text2);
+  line-height: 1.9; margin-bottom: 16px; font-weight: 300;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 48px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 600; color: var(--text2);
+}
+.footer-links { display: flex; gap: 32px; list-style: none; }
+.footer-links a { font-size:12px; color:var(--text3); text-decoration:none; transition:color 0.2s; }
+.footer-links a:hover { color: var(--text2); }
+.footer-copy { font-size:12px; color:var(--text3); font-family:'DM Mono',monospace; }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-logo" onclick="showPage('home')">🏛️ Atheneum</div>
+  <ul class="nav-links">
+    <li><a href="#" onclick="showPage('home')">Home</a></li>
+    <li><a href="#" onclick="scrollToCouncils()">Councils</a></li>
+    <li><a href="#" onclick="showPage('about')">About</a></li>
+  </ul>
+  <a href="https://klauz101-hall-of-llms.hf.space/" target="_blank" class="nav-cta">Try Atheneum →</a>
+</nav>
+
+<!-- HOME PAGE -->
+<div id="page-home" class="page active">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-tag">◆ AI That Debates To Find The Truth</div>
+    <h1 class="hero-title">Not One AI.<br><em>A Council.</em></h1>
+    <p class="hero-subtitle">Where intelligence is not a single voice, but a debate.</p>
+    <p class="hero-desc">
+      Atheneum gathers four expert AI models with opposing worldviews,
+      forces them to debate your question through five rigorous stages,
+      and synthesizes the single best possible answer.
+    </p>
+
+    <div class="hero-btns">
+      <a href="https://klauz101-hall-of-llms.hf.space/" target="_blank" class="btn-primary">
+        Launch Atheneum →
+      </a>
+      <button class="btn-secondary" onclick="scrollToCouncils()">Explore Councils</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat"><div class="stat-val">70B</div><div class="stat-label">Model Size</div></div>
+      <div class="stat"><div class="stat-val">5</div><div class="stat-label">Debate Stages</div></div>
+      <div class="stat"><div class="stat-val">~35s</div><div class="stat-label">Per Answer</div></div>
+      <div class="stat"><div class="stat-val">$0</div><div class="stat-label">Cost</div></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- COUNCILS -->
+  <section id="councils-section">
+    <div class="section-tag">Domain Councils</div>
+    <h2 class="section-title">Four specialized <em>councils.</em></h2>
+    <p class="section-desc">Same debate framework. Different domains. All live and ready to use.</p>
+
+    <div class="councils-grid">
+
+      <!-- GENERAL COUNCIL -->
+      <div class="council-tile" style="cursor:default">
+        <div class="ct-glow"></div>
+        <div class="ct-icon">🏛️</div>
+        <div class="ct-status status-live"><span class="status-dot"></span>LIVE</div>
+        <div class="ct-name">Hall of LLMs</div>
+        <div class="ct-tagline">Ask anything. Four expert models debate your question.</div>
+        <div class="ct-features">
+          <div class="ct-feature">General questions on any topic</div>
+          <div class="ct-feature">Science, philosophy, technology, business</div>
+          <div class="ct-feature">4 models with different perspectives</div>
+          <div class="ct-feature">Free forever</div>
+        </div>
+        <a href="https://klauz101-hall-of-llms.hf.space/" target="_blank" class="ct-btn">Visit →</a>
+      </div>
+
+      <!-- LEX COUNCIL -->
+      <div class="council-tile ct-law">
+        <div class="ct-glow"></div>
+        <div class="ct-icon">⚖️</div>
+        <div class="ct-status status-live"><span class="status-dot"></span>LIVE</div>
+        <div class="ct-name">Lex Council</div>
+        <div class="ct-tagline">Legal analysis and rights from 4 expert perspectives.</div>
+        <div class="ct-features">
+          <div class="ct-feature">Case law analysis and precedent</div>
+          <div class="ct-feature">Rights clarification</div>
+          <div class="ct-feature">Contract review assistance</div>
+          <div class="ct-feature">Always consult a lawyer</div>
+        </div>
+        <a href="https://klauz101-lex.hf.space/" target="_blank" class="ct-btn">Visit →</a>
+      </div>
+
+      <!-- PAIDEIA COUNCIL -->
+      <div class="council-tile ct-edu">
+        <div class="ct-glow"></div>
+        <div class="ct-icon">🎓</div>
+        <div class="ct-status status-live"><span class="status-dot"></span>LIVE</div>
+        <div class="ct-name">Paideia Council</div>
+        <div class="ct-tagline">Learn concepts deeply — explained 4 different ways.</div>
+        <div class="ct-features">
+          <div class="ct-feature">Fundamentalist, Analogist, Practitioner, Questioner</div>
+          <div class="ct-feature">Beginner, Intermediate, Advanced levels</div>
+          <div class="ct-feature">Designed for genuine understanding</div>
+          <div class="ct-feature">Perfect for students</div>
+        </div>
+        <a href="https://klauz101-paideia.hf.space/" target="_blank" class="ct-btn">Visit →</a>
+      </div>
+
+      <!-- MEDICA COUNCIL -->
+      <div class="council-tile ct-health">
+        <div class="ct-glow"></div>
+        <div class="ct-icon">🩺</div>
+        <div class="ct-status status-live"><span class="status-dot"></span>LIVE</div>
+        <div class="ct-name">Medica Council</div>
+        <div class="ct-tagline">Health questions debated by multiple medical perspectives.</div>
+        <div class="ct-features">
+          <div class="ct-feature">Clinician, researcher, patient, specialist views</div>
+          <div class="ct-feature">Evidence-based medical reasoning</div>
+          <div class="ct-feature">Treatment options and research</div>
+          <div class="ct-feature">Always consult healthcare professionals</div>
+        </div>
+        <a href="https://klauz101-medica.hf.space/" target="_blank" class="ct-btn">Visit →</a>
+      </div>
+    </div>
+
+    <!-- GENERAL CTA -->
+    <div class="general-cta">
+      <div class="general-cta-glow"></div>
+      <h3>🏛️ All four councils are live and free</h3>
+      <p>Choose any council above, or start with Hall of LLMs for any question. No setup needed — just click and ask.</p>
+      <a href="https://klauz101-hall-of-llms.hf.space/" target="_blank" class="btn-primary">
+        Start with Hall of LLMs — Free →
+      </a>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ABOUT -->
+  <section>
+    <div class="about-grid">
+      <div class="about-visual">
+        <div class="about-quote">
+          "The measure of intelligence is the ability to change."
+          <cite>— Albert Einstein</cite>
+        </div>
+        <div class="about-quote">
+          "In all debates, let truth be thy aim, not victory."
+          <cite>— William Penn</cite>
+        </div>
+      </div>
+      <div class="about-text">
+        <h3>Why debate produces better answers</h3>
+        <p>A single AI, no matter how capable, has blind spots. It was trained on text that reflects certain biases, certain popular opinions, certain dominant narratives.</p>
+        <p>Atheneum forces disagreement. Four models with opposing temperaments and explicit instructions to challenge each other produce something a single model cannot — genuine intellectual tension that surfaces the strongest arguments and exposes the weakest ones.</p>
+        <p>The answer you receive has been battle-tested before you see it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">🏛️ Atheneum</div>
+    <ul class="footer-links">
+      <li><a href="https://klauz101-hall-of-llms.hf.space/" target="_blank">Hall of LLMs</a></li>
+      <li><a href="https://klauz101-lex.hf.space/" target="_blank">Lex Council</a></li>
+      <li><a href="https://klauz101-paideia.hf.space/" target="_blank">Paideia Council</a></li>
+      <li><a href="https://klauz101-medica.hf.space/" target="_blank">Medica Council</a></li>
+    </ul>
+    <div class="footer-copy">Built with Llama 3.3 70B · Free forever</div>
+  </footer>
+
+</div>
+
+<!-- ABOUT PAGE -->
+<div id="page-about" class="page">
+  <div class="hero" style="min-height:50vh;">
+    <div class="hero-bg"></div>
+    <div class="hero-tag">◆ Our Vision</div>
+    <h1 class="hero-title" style="font-size:clamp(40px,6vw,80px);">Built on the belief that<br><em>debate finds truth.</em></h1>
+    <p class="hero-subtitle">Atheneum is not a chatbot. It is a council.</p>
+  </div>
+
+  <section>
+    <div class="about-grid">
+      <div class="about-text">
+        <h3>Why we built Atheneum</h3>
+        <p>Every AI assistant today gives you a single answer from a single perspective. That answer reflects the biases in its training data, the popular opinions in its training set, and the statistical average of what humans have written.</p>
+        <p>We believe this is fundamentally wrong for high-stakes questions. The best answers do not come from the most confident voice — they come from rigorous intellectual conflict.</p>
+        <p>Atheneum was built on a simple idea: force AI models to disagree with each other before you see a single word. Five stages of debate. Attack. Defense. Peer ranking. Synthesis. What you receive is battle-tested.</p>
+      </div>
+      <div>
+        <div class="about-quote">
+          "The strength of an argument is not in its confidence, but in its ability to survive challenge."
+          <cite>— The Atheneum Principle</cite>
+        </div>
+        <div class="about-quote">
+          "Named for ancient institutions where scholars gathered to debate and advance human knowledge."
+          <cite>— On the name Atheneum</cite>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">🏛️ Atheneum</div>
+    <ul class="footer-links">
+      <li><a href="#" onclick="showPage('home')">Home</a></li>
+      <li><a href="https://github.com" target="_blank">GitHub</a></li>
+    </ul>
+    <div class="footer-copy">Built with Llama 3.3 70B · Free forever</div>
+  </footer>
+</div>
+
+<script>
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function scrollToCouncils() {
+  showPage('home');
+  setTimeout(() => {
+    document.getElementById('councils-section').scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "name": "atheneum",
+  "version": "1.0.0",
+  "description": "AI That Debates To Find The Truth \u2014 Four AI Models Debate Your Questions",
+  "author": "Atheneum Contributors",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "debate",
+    "llama",
+    "groq",
+    "cerebras",
+    "council"
+  ],
+  "homepage": "https://github.com/ruturajnalbalwar-arch/atheneum",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ruturajnalbalwar-arch/atheneum.git"
+  },
+  "scripts": {
+    "dev": "http-server . -p 8000 -c-1 --cors",
+    "start": "npm run dev",
+    "build": "echo 'Static files only - no build needed'",
+    "test": "echo 'No tests configured'",
+    "help": "echo 'Visit README.md for documentation'"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  }
+}
