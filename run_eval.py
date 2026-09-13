@@ -99,6 +99,12 @@ async def run_council(q):
              "temperature": app.CHAIRMAN["temperature"]}
     text = await app.call_model(chair, csys, cuser, max_tokens=2000)
     elapsed = time.time() - t0
+    # The Chairman is called directly rather than through a stage, so a failure
+    # here is not caught by the stage filtering and would become the scored
+    # answer. Record it like any other dropped agent.
+    if app.failed(text):
+        app.FAILURES.append({"stage": "chairman", "id": "chairman",
+                             "name": app.CHAIRMAN["name"], "detail": text})
     tin = sum(a for a, _ in USAGE)
     tout = sum(b for _, b in USAGE)
     return {"answer": text, "latency": elapsed, "calls": len(USAGE),
