@@ -123,6 +123,24 @@ async def call_cerebras(model, system, user, temperature, max_tokens):
     return resp.choices[0].message.content
 
 
+# A call that fails returns a marker string instead of an answer. The marker
+# carries this prefix so that failure is detected by construction rather than by
+# guessing at the shape of the text: no model output can begin with it, so a
+# real answer is never mistaken for a failure and a failure is never mistaken
+# for a real answer. It still starts with "[" and contains "failed", which is
+# what run_eval.py's preflight check and the workflow's grep look for.
+FAILURE_PREFIX = "[\u2717 "
+
+
+def failure_marker(name, detail):
+    return "%s%s failed: %s]" % (FAILURE_PREFIX, name, detail)
+
+
+def failed(text):
+    """True if `text` is a call_model failure marker rather than an answer."""
+    return not isinstance(text, str) or text.startswith(FAILURE_PREFIX)
+
+
 async def call_model(member, system, user, max_tokens=350):
     temperature = member.get("temperature", 0.7)
     for attempt in range(3):
@@ -137,8 +155,42 @@ async def call_model(member, system, user, max_tokens=350):
                 wait = (attempt + 1) * 8
                 await asyncio.sleep(wait)
             else:
-                return f"[{member['name']} failed: {str(e)[:80]}]"
-    return f"[{member['name']} failed after 3 attempts]"
+                return failure_marker(member["name"], str(e)[:80])
+    return failure_marker(member["name"], "rate limited after 3 attempts")
+
+
+# ── FAILED AGENTS ARE DROPPED, NOT PASSED ON ─────────────────────────────────
+# A failure marker must never reach another agent. If it does, the other agents
+# attack it, the ranking stage ranks it and the Chairman synthesises it, and the
+# final answer is indistinguishable from one produced by a clean run. So each
+# stage keeps only the agents whose call succeeded, and an agent that fails is
+# excluded from every later stage rather than carried forward with a placeholder
+# where its answer should be.
+#
+# The cost is that a degraded run still produces an answer, from a smaller
+# council. FAILURES records what was dropped so the caller can tell the two
+# apart; for the paper evaluation, a run with a non-empty FAILURES list is not
+# comparable to a clean one and should be discarded rather than scored.
+FAILURES = []
+
+
+def active(stage_results):
+    """The council members still in the debate, in COUNCIL order."""
+    ids = {r["id"] for r in stage_results}
+    return [m for m in COUNCIL if m["id"] in ids]
+
+
+def _keep(members, responses, stage):
+    """Pair members with their responses, dropping and recording the failures."""
+    kept = []
+    for m, resp in zip(members, responses):
+        if failed(resp):
+            FAILURES.append({"stage": stage, "id": m["id"], "name": m["name"],
+                             "detail": resp})
+            continue
+        kept.append({"id": m["id"], "name": m["name"], "emoji": m["emoji"],
+                     "response": resp})
+    return kept
 
 
 def stream_chairman(system, user, max_tokens=2000):
@@ -166,17 +218,11 @@ async def stage1(question):
         "Give your best answer. Take a clear position. "
         "Be specific. LIMIT: 150 words."
     )
+    # stage1 opens a new question, so it resets the failure record.
+    FAILURES.clear()
     tasks = [call_model(m, m["personality"], prompt, 250) for m in COUNCIL]
     responses = await asyncio.gather(*tasks)
-    return [
-        {
-            "id":       COUNCIL[i]["id"],
-            "name":     COUNCIL[i]["name"],
-            "emoji":    COUNCIL[i]["emoji"],
-            "response": responses[i]
-        }
-        for i in range(len(COUNCIL))
-    ]
+    return _keep(COUNCIL, responses, "stage1")
 
 # ── STAGE 2 — CROSS ATTACK ────────────────────────────────────────────────────
 
@@ -199,17 +245,10 @@ async def stage2(question, s1):
         m["personality"] +
         " You are in a debate. Disagree with at least 2 others specifically."
     )
-    tasks = [call_model(m, debate_sys(m), build_prompt(m["id"]), 250) for m in COUNCIL]
+    members = active(s1)
+    tasks = [call_model(m, debate_sys(m), build_prompt(m["id"]), 250) for m in members]
     responses = await asyncio.gather(*tasks)
-    return [
-        {
-            "id":       COUNCIL[i]["id"],
-            "name":     COUNCIL[i]["name"],
-            "emoji":    COUNCIL[i]["emoji"],
-            "response": responses[i]
-        }
-        for i in range(len(COUNCIL))
-    ]
+    return _keep(members, responses, "stage2")
 
 # ── STAGE 3 — DEFENSE ─────────────────────────────────────────────────────────
 
@@ -228,17 +267,10 @@ async def stage3(question, s1, s2):
             "Write your FINAL answer. LIMIT: 150 words."
         )
 
-    tasks = [call_model(m, m["personality"], build_prompt(m["id"]), 250) for m in COUNCIL]
+    members = active(s2)
+    tasks = [call_model(m, m["personality"], build_prompt(m["id"]), 250) for m in members]
     responses = await asyncio.gather(*tasks)
-    return [
-        {
-            "id":       COUNCIL[i]["id"],
-            "name":     COUNCIL[i]["name"],
-            "emoji":    COUNCIL[i]["emoji"],
-            "response": responses[i]
-        }
-        for i in range(len(COUNCIL))
-    ]
+    return _keep(members, responses, "stage3")
 
 # ── STAGE 4 — PEER RANKINGS ───────────────────────────────────────────────────
 
@@ -249,28 +281,34 @@ async def stage4(question, s3):
         f"Response {lbl}:\n{s3[i]['response']}"
         for i, lbl in enumerate(labels)
     ])
+    # The example ranking asks for exactly as many places as there are answers,
+    # so a council reduced by a failure is not asked to rank four.
+    example = "\n".join("%d. Response %s" % (i + 1, ch)
+                        for i, ch in zip(range(len(labels)), "XYZWVU"))
     prompt = (
         f"Question: {question}\n\n"
         f"Final positions:\n{block}\n\n"
         "Evaluate each. Then write:\n"
         "FINAL RANKING:\n"
-        "1. Response X\n"
-        "2. Response Y\n"
-        "3. Response Z\n"
-        "4. Response W"
+        f"{example}"
     )
-    tasks     = [call_model(m, m["personality"], prompt, 350) for m in COUNCIL]
+    members   = active(s3)
+    tasks     = [call_model(m, m["personality"], prompt, 350) for m in members]
     responses = await asyncio.gather(*tasks)
     results   = []
-    for i, resp in enumerate(responses):
+    for m, resp in zip(members, responses):
+        if failed(resp):
+            FAILURES.append({"stage": "stage4", "id": m["id"], "name": m["name"],
+                             "detail": resp})
+            continue
         if "FINAL RANKING:" in resp:
             parsed = re.findall(r"Response\s+[A-Z]", resp.split("FINAL RANKING:")[-1])
         else:
             parsed = re.findall(r"Response\s+[A-Z]", resp)
         results.append({
-            "id":             COUNCIL[i]["id"],
-            "name":           COUNCIL[i]["name"],
-            "emoji":          COUNCIL[i]["emoji"],
+            "id":             m["id"],
+            "name":           m["name"],
+            "emoji":          m["emoji"],
             "full_review":    resp,
             "parsed_ranking": parsed
         })
@@ -280,7 +318,10 @@ async def stage4(question, s3):
 
 def build_chairman_prompt(question, s1, s2, s3, s4, label_to_model):
     transcript = ""
-    for m in COUNCIL:
+    # Only the agents that completed stages 1 to 3. An agent dropped after a
+    # failed call contributes nothing here; the alternative is a transcript slot
+    # holding a failure marker, which is the bug this avoids.
+    for m in active(s3):
         mid = m["id"]
         r1  = next((r["response"] for r in s1 if r["id"] == mid), "")
         r2  = next((r["response"] for r in s2 if r["id"] == mid), "")
